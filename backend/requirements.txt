@@ -1,2 +1,7 @@
 fastapi
 uvicorn
+langchain-mongodb
+langchain-google-genai
+pymongo
+openai
+pydantic-settings
