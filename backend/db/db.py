@@ -31,7 +31,11 @@ def save_to_mongo():
                 movie_dict[key.lower()] = value  
 
         if "url" in movie_dict and "title" in movie_dict and "genre" in movie_dict:
-            text = f"url: {movie_dict['url']}\ntitle: {movie_dict['title']}\ngenre: {movie_dict['genre']}"
+            text = f"url: {movie_dict['url']}\ntitle: {movie_dict['title']}\ngenre: {movie_dict['genre']}\n"
+            if "imdb_rating" in movie_dict:
+                text += f"IMDB_Rating: {movie_dict['imdb_rating']}\n"
+            if "overview" in movie_dict:
+                text += f"overview: {movie_dict['overview']}\n"
             docs.append(Document(page_content=text, metadata={"title": movie_dict["title"]}))
 
     if not docs:
@@ -63,7 +67,7 @@ def search_mongo(query):
         client = MongoClient(settings.MONGO_URI)
         collection = client['mongoVector']['testvector']
         vectorStore = MongoDBAtlasVectorSearch(collection, embeddings, index_name="vector_index")
-        docs = vectorStore.similarity_search(query)
+        docs = vectorStore.similarity_search(query,k=8)
         print("Vector Search Results:")
         print(len(docs))
         return docs
