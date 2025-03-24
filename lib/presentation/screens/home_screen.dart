@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../theme/theme.dart';
+import 'results_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,7 +15,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _queryController = TextEditingController();
   String? _selectedMood;
   File? _selectedImage;
-  final List<String> _moods = ['Relaxed', 'Excited', 'Tired'];
+  // Updated moods list with two new moods
+  final List<String> _moods = ['Relaxed', 'Excited', 'Tired', 'Happy', 'Adventurous'];
 
   // Function to pick an image from the gallery
   Future<void> _pickImage() async {
@@ -28,14 +30,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Function to navigate to the recommendations screen (to be implemented later)
+  // Function to navigate to the recommendations screen
   void _getRecommendations() {
-    // For now, just navigate to a placeholder screen
-    Navigator.pushNamed(context, '/recommendations', arguments: {
-      'query': _queryController.text,
-      'mood': _selectedMood,
-      'image': _selectedImage?.path,
-    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ResultsScreen()),
+    );
   }
 
   @override
@@ -85,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.vibrantYellow.withOpacity(0.3),
+                        color: AppTheme.vibrantYellow.withValues(alpha: 0.3),
                         blurRadius: 10,
                         spreadRadius: 2,
                       ),
@@ -99,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       hintText: 'What do you want to watch or listen to?',
                       hintStyle: const TextStyle(color: AppTheme.lightGray),
                       filled: true,
-                      fillColor: AppTheme.softGray.withOpacity(0.2),
+                      fillColor: AppTheme.softGray.withValues(alpha: 0.2),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide.none,
@@ -140,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: AppTheme.softGray.withOpacity(0.2),
+                          fillColor: AppTheme.softGray.withValues(alpha: 0.2),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -236,7 +236,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.vibrantYellow.withOpacity(0.5),
+                              color: AppTheme.vibrantYellow.withValues(alpha: 0.5),
                               blurRadius: 8,
                               spreadRadius: 2,
                             ),

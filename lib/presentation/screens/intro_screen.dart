@@ -34,7 +34,7 @@ class VibePickIntroScreen extends StatelessWidget {
         // Page 1: Welcome to VibePick
         PageViewModel(
           title: "Welcome to VibePick",
-          body: "Your personal entertainment assistant that picks the perfect movies, shows, or music based on your vibe.",
+          body: "Your personal entertainment assistant that picks the perfect movies based on your vibe.",
           image: const Center(
             child: Icon(
               Icons.movie_filter_rounded,
