@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import '../../theme/theme.dart';
+import 'package:http/http.dart' as http;
+import 'package:vibepick/theme/theme.dart';
+import 'dart:convert';
 import 'results_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -15,8 +17,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _queryController = TextEditingController();
   String? _selectedMood;
   File? _selectedImage;
-  // Updated moods list with two new moods
   final List<String> _moods = ['Relaxed', 'Excited', 'Tired', 'Happy', 'Adventurous'];
+  bool _isLoading = false;
 
   // Function to pick an image from the gallery
   Future<void> _pickImage() async {
@@ -30,12 +32,131 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Function to navigate to the recommendations screen
-  void _getRecommendations() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ResultsScreen()),
-    );
+  // Function to parse a movie object into the format expected by ResultsScreen
+  Map<String, dynamic> _parseMovieData(dynamic movie) {
+    return {
+      'poster': movie['poster_url']?.toString() ?? '',
+      'title': movie['title']?.toString() ?? 'Unknown Title',
+      'genre': movie['genre']?.toString() ?? 'Unknown Genre',
+      'imdbRating': movie['IMDB_rating']?.toString() ?? 'N/A',
+      'overview': movie['overview']?.toString() ?? 'No overview available.',
+    };
+  }
+
+  // Function to call the backend and navigate to the recommendations screen
+  Future<void> _getRecommendations() async {
+    if (_queryController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a query to get recommendations.'),
+          backgroundColor: AppTheme.playfulCoral,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedMood == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a mood.'),
+          backgroundColor: AppTheme.playfulCoral,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final requestBody = {
+        'text': _queryController.text,
+        'mood': _selectedMood!,
+      };
+
+      final response = await http.post(
+        Uri.parse('https://vibepick.onrender.com/moviesrecommend'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+
+        // Log the raw response for debugging
+        print('Raw API Response: $responseData');
+
+        // Check if response has a 'message' field
+        if (!responseData.containsKey('message')) {
+          throw Exception('Response does not contain a "message" field.');
+        }
+
+        // The 'message' field is a JSON string, so decode it
+        final modelOutput = jsonDecode(responseData['message']);
+
+        // Handle the response format
+        List<Map<String, dynamic>> movies = [];
+
+        // Check if the decoded modelOutput has a 'choices' field
+        if (modelOutput is Map && modelOutput.containsKey('choices')) {
+          final choices = modelOutput['choices'] as List<dynamic>;
+          if (choices.isEmpty) {
+            throw Exception('No choices found in the response.');
+          }
+
+          final choice = choices[0] as Map<String, dynamic>;
+          final message = choice['message'] as Map<String, dynamic>;
+          final content = message['content'] as String;
+
+          // Parse the content string, which is a JSON array of movies
+          final movieList = jsonDecode(content) as List<dynamic>;
+
+          if (movieList.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('No recommendations found for your query.'),
+                backgroundColor: AppTheme.playfulCoral,
+              ),
+            );
+            return;
+          }
+
+          // Parse each movie into the required format
+          movies = movieList.map((movie) {
+            return _parseMovieData(movie);
+          }).toList();
+        } else {
+          throw Exception('Unexpected response format: $modelOutput');
+        }
+
+        // Navigate to ResultsScreen with the parsed movies
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ResultsScreen(movies: movies),
+          ),
+        );
+      } else if (response.statusCode == 400) {
+        final responseData = jsonDecode(response.body);
+        throw Exception('Backend error: ${responseData['detail'] ?? 'Unknown error'}');
+      } else {
+        throw Exception('Failed to fetch recommendations: ${response.statusCode}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: AppTheme.playfulCoral,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -48,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
             end: Alignment.bottomCenter,
             colors: [
               AppTheme.deepBlack,
-              Color(0xFF1A3C34), // Darker teal shade
+              Color(0xFF1A3C34),
             ],
           ),
         ),
@@ -58,7 +179,6 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
                 const Text(
                   'Find Your Vibe',
                   style: TextStyle(
@@ -78,14 +198,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 54),
                 Center(child: Image.asset('assets/images/home.gif', height: 200)),
                 const Spacer(),
-
-                // Text Field (Point of Interest)
                 Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.vibrantYellow.withValues(alpha: 0.3),
+                        color: AppTheme.vibrantYellow.withOpacity(0.3),
                         blurRadius: 10,
                         spreadRadius: 2,
                       ),
@@ -99,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       hintText: 'What do you want to watch or listen to?',
                       hintStyle: const TextStyle(color: AppTheme.lightGray),
                       filled: true,
-                      fillColor: AppTheme.softGray.withValues(alpha: 0.2),
+                      fillColor: AppTheme.softGray.withOpacity(0.2),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide.none,
@@ -112,8 +230,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // Mood Dropdown
                 Row(
                   children: [
                     const Text(
@@ -140,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: AppTheme.softGray.withValues(alpha: 0.2),
+                          fillColor: AppTheme.softGray.withOpacity(0.2),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -172,8 +288,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
-
-                // Image Upload (Optional)
                 GestureDetector(
                   onTap: _pickImage,
                   child: Container(
@@ -218,11 +332,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const Spacer(),
-
-                // Get Recommendations Button
                 Center(
                   child: GestureDetector(
-                    onTap: _getRecommendations,
+                    onTap: _isLoading ? null : _getRecommendations,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       transform: Matrix4.identity()..scale(1.0),
@@ -232,24 +344,35 @@ class _HomeScreenState extends State<HomeScreen> {
                           horizontal: 32,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.vibrantYellow,
+                          color: _isLoading
+                              ? AppTheme.lightGray
+                              : AppTheme.vibrantYellow,
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.vibrantYellow.withValues(alpha: 0.5),
+                              color: AppTheme.vibrantYellow.withOpacity(0.5),
                               blurRadius: 8,
                               spreadRadius: 2,
                             ),
                           ],
                         ),
-                        child: const Text(
-                          'Get Recommendations',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.deepBlack,
-                          ),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: AppTheme.deepBlack,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Get Recommendations',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.deepBlack,
+                                ),
+                              ),
                       ),
                     ),
                   ),

@@ -1,62 +1,95 @@
 import 'package:flutter/material.dart';
-import 'package:vibepick/theme/theme.dart';
+import '../../theme/theme.dart';
 
 class ResultsScreen extends StatefulWidget {
-  const ResultsScreen({super.key});
+  final List<dynamic>? movies; // Dynamic list of movies from the API
+
+  const ResultsScreen({super.key, this.movies});
 
   @override
   _ResultsScreenState createState() => _ResultsScreenState();
 }
 
 class _ResultsScreenState extends State<ResultsScreen> {
-  // Hardcoded movie data
-  final List<Map<String, dynamic>> mockMovies = [
-    {
-      'poster': 'https://image.tmdb.org/t/p/w500/1E5baAaEse26fej7uHcjOgEE2t2.jpg',
-      'title': 'Oppenheimer',
-      'genre': 'Biography, Drama, History',
-      'imdbRating': 8.4,
-      'overview':
-          'The story of J. Robert Oppenheimer’s role in the development of the atomic bomb during World War II, exploring the moral dilemmas and scientific breakthroughs that shaped history.',
-    },
-    {
-      'poster': 'https://image.tmdb.org/t/p/w500/kP7t6RwGz2dXU1CENM7gVOoLhP.jpg',
-      'title': 'Barbie',
-      'genre': 'Comedy, Fantasy',
-      'imdbRating': 7.0,
-      'overview':
-          'Barbie and Ken leave the perfect world of Barbieland to explore the real world, discovering the joys and challenges of being human in a whimsical and heartfelt adventure.',
-    },
-    {
-      'poster': 'https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg',
-      'title': 'Spider-Man: Across the Spider-Verse',
-      'genre': 'Animation, Action, Adventure',
-      'imdbRating': 8.7,
-      'overview':
-          'Miles Morales embarks on a multiversal adventure, teaming up with Gwen Stacy and a new crew of Spider-People to face a powerful villain threatening every dimension.',
-    },
-    {
-      'poster': 'https://image.tmdb.org/t/p/w500/iuFNMS8U5cb6xfzi51Dbkovj7vM.jpg',
-      'title': 'The Godfather',
-      'genre': 'Crime, Drama',
-      'imdbRating': 9.2,
-      'overview':
-          'The aging patriarch of an organized crime dynasty transfers control of his clandestine empire to his reluctant son, leading to a saga of power, loyalty, and betrayal.',
-    },
-    {
-      'poster': 'https://image.tmdb.org/t/p/w500/7WsyChQLEftFiDOVTGkv3hFpyD6.jpg',
-      'title': 'The Matrix',
-      'genre': 'Action, Sci-Fi',
-      'imdbRating': 8.7,
-      'overview':
-          'A computer hacker learns about the true nature of reality and joins a group of rebels to fight a war against a powerful AI that has enslaved humanity in a simulated world.',
-    },
-  ];
-
   int? _expandedIndex; // Track which card is expanded
 
   @override
   Widget build(BuildContext context) {
+    // Check if movies are null or empty
+    if (widget.movies == null || widget.movies!.isEmpty) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppTheme.deepBlack,
+                Color(0xFF1A3C34),
+              ],
+            ),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'No Recommendations Found',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.pureWhite,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Try a different query or mood.',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppTheme.lightGray,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context); // Go back to HomeScreen
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 24,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.vibrantYellow,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.vibrantYellow.withOpacity(0.5),
+                            blurRadius: 8,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: const Text(
+                        'Go Back',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.deepBlack,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -65,12 +98,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
             end: Alignment.bottomCenter,
             colors: [
               AppTheme.deepBlack,
-              Color(0xFF1A3C34), // Darker teal shade
+              Color(0xFF1A3C34),
             ],
           ),
         ),
         child: SafeArea(
-          bottom: false, // Ignore the bottom safe area
+          bottom: false,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
             child: Column(
@@ -81,12 +114,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(
-                        Icons.arrow_back_ios,
+                        Icons.arrow_back_rounded,
                         color: AppTheme.vibrantYellow,
                         size: 28,
                       ),
                       onPressed: () {
-                        Navigator.pop(context); // Navigate back to HomeScreen
+                        Navigator.pop(context);
                       },
                     ),
                     const SizedBox(width: 8),
@@ -115,9 +148,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 // Movie Cards List
                 Expanded(
                   child: ListView.builder(
-                    itemCount: mockMovies.length,
+                    itemCount: widget.movies!.length,
                     itemBuilder: (context, index) {
-                      final movie = mockMovies[index];
+                      final movie = widget.movies![index];
                       final isExpanded = _expandedIndex == index;
 
                       return GestureDetector(
@@ -130,11 +163,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           duration: const Duration(milliseconds: 300),
                           margin: const EdgeInsets.symmetric(vertical: 8.0),
                           decoration: BoxDecoration(
-                            color: AppTheme.softGray.withValues(alpha: 0.2),
+                            color: AppTheme.softGray.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: AppTheme.vibrantYellow.withValues(alpha: 0.3),
+                                color: AppTheme.vibrantYellow.withOpacity(0.3),
                                 blurRadius: 8,
                                 spreadRadius: 1,
                               ),
@@ -151,7 +184,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
                                       child: Image.network(
-                                        movie['poster'],
+                                        movie['poster'] ?? 'https://via.placeholder.com/100x150',
                                         width: 100,
                                         height: 150,
                                         fit: BoxFit.cover,
@@ -177,7 +210,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                         children: [
                                           // Title
                                           Text(
-                                            movie['title'],
+                                            movie['title'] ?? 'Unknown Title',
                                             style: const TextStyle(
                                               fontSize: 20,
                                               fontWeight: FontWeight.bold,
@@ -188,7 +221,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
                                           // Genre
                                           Text(
-                                            movie['genre'],
+                                            movie['genre'] ?? 'Unknown Genre',
                                             style: const TextStyle(
                                               fontSize: 14,
                                               color: AppTheme.lightGray,
@@ -206,7 +239,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                               ),
                                               const SizedBox(width: 4),
                                               Text(
-                                                '${movie['imdbRating']}/10',
+                                                '${movie['imdbRating'] ?? 'N/A'}/10',
                                                 style: const TextStyle(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.bold,
@@ -235,7 +268,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                 Padding(
                                   padding: const EdgeInsets.all(12.0),
                                   child: Text(
-                                    movie['overview'],
+                                    movie['overview'] ?? 'No overview available.',
                                     style: const TextStyle(
                                       fontSize: 14,
                                       color: AppTheme.lightGray,
